@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <AssemblyName>iot-edge-opc-publisher-configuration</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <PackageId>OPC Publisher</PackageId>
+    <Company>Microsoft</Company>
+    <Product>OPC Publisher</Product>
+    <Description>OPC Publisher test client</Description>
+    <Copyright>Copyright © 2004-2018 Microsoft Corp</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.17.1" />
+    <PackageReference Include="Mono.Options" Version="5.3.0.1" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Symbols" Version="1.4.353.15" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="4.0.0" />
+  </ItemGroup>
+
+</Project>

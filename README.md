@@ -1,57 +1,62 @@
-# Project Name
+# iot-edge-opc-publisher-nodeconfiguration
 
-(short, 1-3 sentenced, description of the project)
+This .NET Core application allows to configure [OPC Publisher](https://github.com/Azure/iot-edge-opc-publisher) using IoTHub direct method calls.
+
 
 ## Features
 
-This project framework provides the following features:
+The application is/can:
+* Read the current node configuration from the OPC Publisher device/module specified by id/iothubdevicename and im/iothubmodule name.
+* Save the current node configuration in a backup file.
+* Purge the current node configuration of OPC Publisher.
+* Send the specified new node configuration to OPC Publisher.
 
-* Feature 1
-* Feature 2
-* ...
 
 ## Getting Started
 
 ### Prerequisites
 
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
+The application required .NET Core and OPC Publisher deployed either standalone or as IoT Edge module.
 
 ### Installation
 
-(ideally very short)
-
-- npm install [package name]
-- mvn install
-- ...
+You need to compile the solution with Visual Studio and then run it.
 
 ### Quickstart
-(Add steps to get up and running quickly)
 
-1. git clone [repository clone url]
-2. cd [respository name]
-3. ...
+The application supports several command line options to control its functionality. 
 
+Here the usage output:
+        OPC Publisher node configuration
+        Current directory is: <current directory>
+        Log file is: <hstname>-publishernodeconfig.log
+        Log level is: info
+        
+        Usage: iot-edge-opc-publisher-configuration.exe [<options>]
+        
+        OPC Publisher configuration tool.
+        To exit the application, just press CTRL-C while it is running.
+        
+        Options:
+          -h, --help                 show this message and exit
+              --ic, --iotHubConnectionString=VALUE
+                                     IoTHub owner or service connectionstring
+              --id, --iothubdevicename=VALUE
+                                     IoTHub device name of the OPC Publisher
+              --im, --iothubmodulename=VALUE
+                                     IoT Edge module name of the OPC Publisher which
+                                       runs in the IoT Edge device specified by id/
+                                       iothubdevicename
+              --pc, --purgeconfig    remove all configured nodes before pushing new ones
+              --bf, --backupfile=VALUE
+                                     the filename to store the existing configuration
+                                       of OPC Publisher
+                                       Default: './<hostname>-publishernodeconfig.bak'
+              --nc, --nodeconfigfile=VALUE
+                                     the filename of the node configuration to be set
+              --lf, --logfile=VALUE  the filename of the logfile to use
+                                       Default: './johanngnb-publishernodeconfig.log'
+              --ll, --loglevel=VALUE the loglevel to use (allowed: fatal, error, warn,
+                                       info, debug, verbose).
+                                       Default: info
 
-## Demo
-
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
-
-## Resources
-
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
