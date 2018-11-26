@@ -17,6 +17,8 @@ The application is/can:
 ### Prerequisites
 
 The application required .NET Core and OPC Publisher deployed either standalone or as IoT Edge module.
+The node configuration functionality only works with OPC Publisher versions higher or equal than 2.2.0.
+
 
 ### Installation
 

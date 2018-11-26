@@ -9,6 +9,7 @@ namespace PubisherConfig
     using Microsoft.Azure.Devices;
     using OpcPublisher;
     using System.Net;
+    using System.Threading.Tasks;
     using static Program;
 
     public class Publisher
@@ -32,6 +33,7 @@ namespace PubisherConfig
             _unpublishAllNodesMethod = new CloudToDeviceMethod("UnpublishAllNodes", responseTimeout, connectionTimeout);
             _getConfiguredEndpointsMethod = new CloudToDeviceMethod("GetConfiguredEndpoints", responseTimeout, connectionTimeout);
             _getConfiguredNodesOnEndpointMethod = new CloudToDeviceMethod("GetConfiguredNodesOnEndpoint", responseTimeout, connectionTimeout);
+            _getInfoMethod = new CloudToDeviceMethod("GetInfo", responseTimeout, connectionTimeout);
         }
 
         public bool PublishNodes(List<NodeIdInfo> nodeIdInfos, CancellationToken ct, string endpointUrl = null)
@@ -261,6 +263,51 @@ namespace PubisherConfig
             return (HttpStatusCode)result.Status == HttpStatusCode.OK ? true : false;
         }
 
+        /// <summary>
+        /// Call the GetInfo method.
+        /// </summary>
+        public async Task<GetInfoMethodResponseModel> GetInfoAsync(CancellationToken ct)
+        {
+            GetInfoMethodResponseModel response = null;
+
+            try
+            {
+                CloudToDeviceMethodResult methodResult = new CloudToDeviceMethodResult();
+                if (string.IsNullOrEmpty(_publisherModuleName))
+                {
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _getInfoMethod, ct);
+                }
+                else
+                {
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _getInfoMethod, ct);
+                }
+                if (methodResult.Status == (int)HttpStatusCode.OK)
+                {
+                    response = JsonConvert.DeserializeObject<GetInfoMethodResponseModel>(methodResult.GetPayloadAsJson());
+                }
+                else
+                {
+                    Logger.Error($"GetInfo failed with status {methodResult.Status}");
+                }
+            }
+            catch (Exception e)
+            {
+                if (!ct.IsCancellationRequested)
+                {
+                    Logger.Debug(e, $"GetInfo exception");
+                }
+            }
+
+            if (response == null && !ct.IsCancellationRequested)
+            {
+                Logger.Information("");
+                Logger.Information($"OPC Publisher is not responding. Either the used version is too old or it is not running.");
+                Logger.Information("");
+            }
+
+            return response;
+        }
+
         const int MAX_RETRY_COUNT = 3;
 
         ServiceClient _iotHubClient;
@@ -273,5 +320,6 @@ namespace PubisherConfig
         CloudToDeviceMethod _unpublishAllNodesMethod;
         CloudToDeviceMethod _getConfiguredEndpointsMethod;
         CloudToDeviceMethod _getConfiguredNodesOnEndpointMethod;
+        CloudToDeviceMethod _getInfoMethod;
     }
 }

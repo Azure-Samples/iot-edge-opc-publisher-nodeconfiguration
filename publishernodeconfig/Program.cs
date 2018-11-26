@@ -153,11 +153,17 @@ namespace PubisherConfig
             }
 
             // instantiate OPC Publisher interface
-            Publisher publisher = new Publisher(iotHubConnectionString, iotHubPublisherDeviceName, iotHubPublisherModuleName, MAX_SHORT_WAIT_SEC, MAX_LONG_WAIT_SEC, ct);
+            _publisher = new Publisher(iotHubConnectionString, iotHubPublisherDeviceName, iotHubPublisherModuleName, MAX_SHORT_WAIT_SEC, MAX_LONG_WAIT_SEC, ct);
+
+            // validate OPC Publisher version
+            if (!await ValidatePublisherVersionAsync(ct))
+            {
+                Environment.Exit(1);
+            }
 
             // read existing configuration
             List<PublisherConfigurationFileEntryModel> currentConfiguration = new List<PublisherConfigurationFileEntryModel>();
-            List<string> configuredEndpoints = publisher.GetConfiguredEndpoints(ct);
+            List<string> configuredEndpoints = _publisher.GetConfiguredEndpoints(ct);
             if (configuredEndpoints.Count > 0)
             {
                 Logger.Information($"OPC Publisher has the following node configuration:");
@@ -168,7 +174,7 @@ namespace PubisherConfig
             }
             foreach (var configuredEndpoint in configuredEndpoints)
             {
-                List<NodeModel> configuredNodesOnEndpoint = publisher.GetConfiguredNodesOnEndpoint(configuredEndpoint, ct);
+                List<NodeModel> configuredNodesOnEndpoint = _publisher.GetConfiguredNodesOnEndpoint(configuredEndpoint, ct);
                 PublisherConfigurationFileEntryModel configEntry = new PublisherConfigurationFileEntryModel();
                 configEntry.EndpointUrl = new Uri(configuredEndpoint);
                 List<OpcNodeOnEndpointModel> nodesOnEndpoint = new List<OpcNodeOnEndpointModel>();
@@ -198,7 +204,7 @@ namespace PubisherConfig
             // remove existing configuration on request
             if (_purgeConfig)
             {
-                publisher.UnpublishAllConfiguredNodes(ct);
+                _publisher.UnpublishAllConfiguredNodes(ct);
                 Logger.Information($"The existing node configuration was purged. OPC Publisher should no longer publish any data.");
             }
 
@@ -222,7 +228,7 @@ namespace PubisherConfig
                             configurationNodeIdInfos.Add(nodeIdInfo);
                         }
                     }
-                    if (!publisher.PublishNodes(configurationNodeIdInfos, ct, uniqueEndpoint.AbsoluteUri))
+                    if (!_publisher.PublishNodes(configurationNodeIdInfos, ct, uniqueEndpoint.AbsoluteUri))
                     {
                         Logger.Error($"Not able to send the new node configuration to OPC Publisher.");
                     }
@@ -287,17 +293,22 @@ namespace PubisherConfig
         /// </summary>
         private static void Usage(Mono.Options.OptionSet options, string[] args)
         {
-            // show usage
             Logger.Information("");
-            string commandLine = string.Empty;
-            foreach (var arg in args)
+
+            // show the args
+            if (args != null)
             {
-                commandLine = commandLine + " " + arg;
+                string commandLine = string.Empty;
+                foreach (var arg in args)
+                {
+                    commandLine = commandLine + " " + arg;
+                }
+                Logger.Information($"Command line: {commandLine}");
             }
-            Logger.Information($"Command line: {commandLine}");
+
             Logger.Information("");
             Logger.Information("");
-            Logger.Information("Usage: dotnet {0}.dll [<options>]", Assembly.GetEntryAssembly().GetName().Name);
+            Logger.Information($"Usage: iot-edge-opc-publisher-nodeconfiguration [<options>]");
             Logger.Information("");
 
             // output the options
@@ -311,6 +322,24 @@ namespace PubisherConfig
                 Logger.Information(line);
             }
         }
+
+        /// <summary>
+        /// Validates if the publisher is there and supports the method calls we need.
+        /// </summary>
+        /// <returns></returns>
+        private static async Task<bool> ValidatePublisherVersionAsync(CancellationToken ct)
+        {
+            // fetch the information
+            GetInfoMethodResponseModel info = await _publisher.GetInfoAsync(ct);
+            if (info == null)
+            {
+                return false;
+            }
+
+            Logger.Information($"OPC Publisher V{info.VersionMajor}.{info.VersionMinor}.{info.VersionPatch} was detected.");
+            return true;
+        }
+
 
         /// <summary>
         /// Usage message.
@@ -344,5 +373,6 @@ namespace PubisherConfig
         private static string _logLevel = "info";
         private static bool _purgeConfig = false;
         private static List<PublisherConfigurationFileEntryLegacyModel> _configurationFileEntries = null;
+        private static Publisher _publisher;
     }
 }
