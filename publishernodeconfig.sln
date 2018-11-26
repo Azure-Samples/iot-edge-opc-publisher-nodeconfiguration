@@ -5,10 +5,34 @@ VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{12AA1D4F-B9A8-4061-A5F9-69A584571099}"
 	ProjectSection(SolutionItems) = preProject
+		Dockerfile = Dockerfile
 		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "publishernodeconfig", "publishernodeconfig\publishernodeconfig.csproj", "{DFD962EA-1C10-4446-A579-1B844C747299}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{66C00EBA-8B8F-4917-9ECE-C00790682DAD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "linux", "linux", "{C5A25221-7DDF-45CE-BB1B-64C7B2B02293}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "windows", "windows", "{591A509F-28D0-45E1-AF32-413E42186C80}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{2587D017-4F40-4957-BAC7-13CEFF1F8443}"
+	ProjectSection(SolutionItems) = preProject
+		docker\windows\amd64\Dockerfile = docker\windows\amd64\Dockerfile
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{B80DEDFA-52A1-4F27-AA65-C938F0C845B3}"
+	ProjectSection(SolutionItems) = preProject
+		docker\linux\amd64\Dockerfile = docker\linux\amd64\Dockerfile
+		docker\linux\amd64\Dockerfile.debug = docker\linux\amd64\Dockerfile.debug
+		docker\linux\amd64\Dockerfile.ssh = docker\linux\amd64\Dockerfile.ssh
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "arm32v7", "arm32v7", "{FA2499E1-BABD-4558-B0D5-4F9D746D756F}"
+	ProjectSection(SolutionItems) = preProject
+		docker\linux\arm32v7\Dockerfile = docker\linux\arm32v7\Dockerfile
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,6 +47,14 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{66C00EBA-8B8F-4917-9ECE-C00790682DAD} = {12AA1D4F-B9A8-4061-A5F9-69A584571099}
+		{C5A25221-7DDF-45CE-BB1B-64C7B2B02293} = {66C00EBA-8B8F-4917-9ECE-C00790682DAD}
+		{591A509F-28D0-45E1-AF32-413E42186C80} = {66C00EBA-8B8F-4917-9ECE-C00790682DAD}
+		{2587D017-4F40-4957-BAC7-13CEFF1F8443} = {591A509F-28D0-45E1-AF32-413E42186C80}
+		{B80DEDFA-52A1-4F27-AA65-C938F0C845B3} = {C5A25221-7DDF-45CE-BB1B-64C7B2B02293}
+		{FA2499E1-BABD-4558-B0D5-4F9D746D756F} = {C5A25221-7DDF-45CE-BB1B-64C7B2B02293}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F2525F81-1A81-4B9E-9156-D0B90017C494}
