@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json;
-using Opc.Ua;
+﻿
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -26,7 +26,7 @@ namespace PubisherConfig
                 _publisherModule = new Module(iotHubPublisherDeviceName, iotHubPublisherModuleName);
             }
             TimeSpan responseTimeout = TimeSpan.FromSeconds(300);
-            TimeSpan connectionTimeout = TimeSpan.FromSeconds(30);
+            TimeSpan connectionTimeout = TimeSpan.FromSeconds(120);
             _publishNodesMethod = new CloudToDeviceMethod("PublishNodes", responseTimeout, connectionTimeout);
             _unpublishNodesMethod = new CloudToDeviceMethod("UnpublishNodes", responseTimeout, connectionTimeout);
             _unpublishAllNodesMethod = new CloudToDeviceMethod("UnpublishAllNodes", responseTimeout, connectionTimeout);

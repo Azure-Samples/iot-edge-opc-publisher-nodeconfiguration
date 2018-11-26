@@ -1,5 +1,5 @@
-﻿using Mono.Options;
-using Opc.Ua;
+﻿
+using Mono.Options;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -10,10 +10,11 @@ using System.Threading.Tasks;
 
 namespace PubisherConfig
 {
-    using System.Linq;
-    using System.Reflection;
     using Newtonsoft.Json;
     using OpcPublisher;
+    using System.Linq;
+    using System.Net;
+    using System.Reflection;
 
     public class Program
     {
@@ -296,7 +297,7 @@ namespace PubisherConfig
             Logger.Information($"Command line: {commandLine}");
             Logger.Information("");
             Logger.Information("");
-            Logger.Information("Usage: {0}.exe [<options>]", Assembly.GetEntryAssembly().GetName().Name);
+            Logger.Information("Usage: dotnet {0}.dll [<options>]", Assembly.GetEntryAssembly().GetName().Name);
             Logger.Information("");
 
             // output the options
@@ -337,8 +338,8 @@ namespace PubisherConfig
             }
         }
 
-        private static string _logFileName = $"{Utils.GetHostName()}-publishernodeconfig.log";
-        private static string _backupFileName = $"{Utils.GetHostName()}-publishernodeconfig.bak";
+        private static string _logFileName = $"{Dns.GetHostName()}-publishernodeconfig.log";
+        private static string _backupFileName = $"{Dns.GetHostName()}-publishernodeconfig.bak";
         private static string _nodeConfigFileName = string.Empty;
         private static string _logLevel = "info";
         private static bool _purgeConfig = false;

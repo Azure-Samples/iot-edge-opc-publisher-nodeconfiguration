@@ -32,10 +32,9 @@ Here the usage output:
         Log file is: <hstname>-publishernodeconfig.log
         Log level is: info
         
-        Usage: iot-edge-opc-publisher-configuration.exe [<options>]
+        Usage: dotnet publishernodeconfig.dll [<options>]
         
         OPC Publisher configuration tool.
-        To exit the application, just press CTRL-C while it is running.
         
         Options:
           -h, --help                 show this message and exit
