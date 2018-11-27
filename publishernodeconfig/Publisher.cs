@@ -14,7 +14,7 @@ namespace PubisherConfig
 
     public class Publisher
     {
-        public Publisher(string iotHubConnectionString, string iotHubPublisherDeviceName, string iotHubPublisherModuleName, int maxShortWaitSec, int maxLongWaitSec, CancellationToken ct)
+        public Publisher(string iotHubConnectionString, string iotHubPublisherDeviceName, string iotHubPublisherModuleName)
         {
             // init IoTHub connection
             _iotHubClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString, TransportType.Amqp_WebSocket_Only);
@@ -36,7 +36,7 @@ namespace PubisherConfig
             _getInfoMethod = new CloudToDeviceMethod("GetInfo", responseTimeout, connectionTimeout);
         }
 
-        public bool PublishNodes(List<NodeIdInfo> nodeIdInfos, CancellationToken ct, string endpointUrl = null)
+        public bool PublishNodes(List<OpcNodeOnEndpointModel> nodesToPublish, CancellationToken ct, string endpointUrl = null)
         {
             bool result = true;
             int retryCount = MAX_RETRY_COUNT;
@@ -44,10 +44,7 @@ namespace PubisherConfig
             try
             {
                 PublishNodesMethodRequestModel publishNodesMethodRequestModel = new PublishNodesMethodRequestModel(endpointUrl);
-                foreach (var nodeIdInfo in nodeIdInfos)
-                {
-                    publishNodesMethodRequestModel.Nodes.Add(new NodeModel(nodeIdInfo.Id));
-                }
+                publishNodesMethodRequestModel.Nodes = nodesToPublish;
                 CloudToDeviceMethodResult methodResult = new CloudToDeviceMethodResult();
                 methodResult.Status = (int)HttpStatusCode.NotAcceptable;
                 while (methodResult.Status == (int)HttpStatusCode.NotAcceptable && retryCount-- > 0)
@@ -70,19 +67,6 @@ namespace PubisherConfig
                         break;
                     }
                 }
-                foreach (var nodeIdInfo in nodeIdInfos)
-                {
-                    if (!nodeIdInfo.Published && methodResult.Status != (int)HttpStatusCode.OK && methodResult.Status != (int)HttpStatusCode.Accepted)
-                    {
-                        Logger.Warning($"PublishNodes failed (nodeId: '{nodeIdInfo.Id}', statusCode: '{methodResult.Status}', publishedState: '{nodeIdInfo.Published}')");
-                        result = false;
-                    }
-                    else
-                    {
-                        nodeIdInfo.Published = true;
-                        Logger.Debug($"PublishNodes succeeded (nodeId: '{nodeIdInfo.Id}', statusCode: '{methodResult.Status}')");
-                    }
-                }
             }
             catch (Exception e)
             {
@@ -91,15 +75,12 @@ namespace PubisherConfig
             return result;
         }
 
-        public bool UnpublishNodes(List<NodeIdInfo> nodeIdInfos, CancellationToken ct, string endpointUrl)
+        public bool UnpublishNodes(List<OpcNodeOnEndpointModel> nodesToUnpublish, CancellationToken ct, string endpointUrl)
         {
             try
             {
                 UnpublishNodesMethodRequestModel unpublishNodesMethodRequestModel = new UnpublishNodesMethodRequestModel(endpointUrl);
-                foreach (var nodeIdInfo in nodeIdInfos)
-                {
-                    unpublishNodesMethodRequestModel.Nodes.Add(new NodeModel(nodeIdInfo.Id));
-                }
+                unpublishNodesMethodRequestModel.Nodes = nodesToUnpublish;
                 _unpublishNodesMethod.SetPayloadJson(JsonConvert.SerializeObject(unpublishNodesMethodRequestModel));
                 CloudToDeviceMethodResult result;
                 if (string.IsNullOrEmpty(_publisherModuleName))
@@ -109,20 +90,6 @@ namespace PubisherConfig
                 else
                 {
                     result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _unpublishNodesMethod, ct).Result;
-                }
-                foreach (var nodeIdInfo in nodeIdInfos)
-                {
-                    if (nodeIdInfo.Published && result.Status != (int)HttpStatusCode.OK && result.Status != (int)HttpStatusCode.Accepted)
-                    {
-                        Logger.Warning($"UnpublishNodes failed (nodeId: '{nodeIdInfo.Id}', statusCode: '{result.Status}', publishedState: '{nodeIdInfo.Published}')");
-                        return false;
-                    }
-                    else
-                    {
-                        nodeIdInfo.Published = false;
-                        Logger.Debug($"UnpublishNodes succeeded (nodeId: '{nodeIdInfo.Id}', statusCode: '{result.Status}'");
-                        return true;
-                    }
                 }
             }
             catch (Exception e)
@@ -196,10 +163,10 @@ namespace PubisherConfig
             return endpoints;
         }
 
-        public List<NodeModel> GetConfiguredNodesOnEndpoint(string endpointUrl, CancellationToken ct)
+        public List<OpcNodeOnEndpointModel> GetConfiguredNodesOnEndpoint(string endpointUrl, CancellationToken ct)
         {
             GetConfiguredNodesOnEndpointMethodResponseModel response = null;
-            List<NodeModel> nodes = new List<NodeModel>();
+            List<OpcNodeOnEndpointModel> nodes = new List<OpcNodeOnEndpointModel>();
             try
             {
                 GetConfiguredNodesOnEndpointMethodRequestModel getConfiguredNodesOnEndpointMethodRequestModel = new GetConfiguredNodesOnEndpointMethodRequestModel(endpointUrl);
@@ -221,7 +188,7 @@ namespace PubisherConfig
                     response = JsonConvert.DeserializeObject<GetConfiguredNodesOnEndpointMethodResponseModel>(result.GetPayloadAsJson());
                     if (response != null && response.Nodes != null)
                     {
-                        nodes.AddRange(response.Nodes);
+                        nodes = response.Nodes;
                     }
                     if (response == null || response.ContinuationToken == null)
                     {
@@ -241,7 +208,6 @@ namespace PubisherConfig
         public bool UnpublishAllConfiguredNodes(CancellationToken ct)
         {
             CloudToDeviceMethodResult result = null;
-            List<NodeModel> nodes = new List<NodeModel>();
             try
             {
                 UnpublishAllNodesMethodRequestModel unpublishAllNodesMethodRequestModel = new UnpublishAllNodesMethodRequestModel();

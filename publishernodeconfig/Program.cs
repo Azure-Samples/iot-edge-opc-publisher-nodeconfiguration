@@ -125,12 +125,12 @@ namespace PubisherConfig
             Logger.Information($"IoTHub connectionstring: {iotHubConnectionString}");
             if (string.IsNullOrEmpty(iotHubPublisherModuleName))
             {
-                Logger.Information($"OPC Publisher not running in IoT Edge.");
+                Logger.Information($"Option settings expect OPC Publisher is running standalone.");
                 Logger.Information($"IoTHub OPC Publisher device name: {iotHubPublisherDeviceName}");
             }
             else
             {
-                Logger.Information($"OPC Publisher running as IoT Edge module.");
+                Logger.Information($"Option settings expect OPC Publisher running as IoT Edge module.");
                 Logger.Information($"IoT Edge device name: {iotHubPublisherDeviceName}");
                 Logger.Information($"OPC Publisher module name: {iotHubPublisherModuleName}");
             }
@@ -153,7 +153,8 @@ namespace PubisherConfig
             }
 
             // instantiate OPC Publisher interface
-            _publisher = new Publisher(iotHubConnectionString, iotHubPublisherDeviceName, iotHubPublisherModuleName, MAX_SHORT_WAIT_SEC, MAX_LONG_WAIT_SEC, ct);
+            Logger.Information("Establishing connection to IoT Hub...");
+            _publisher = new Publisher(iotHubConnectionString, iotHubPublisherDeviceName, iotHubPublisherModuleName);
 
             // validate OPC Publisher version
             if (!await ValidatePublisherVersionAsync(ct))
@@ -174,7 +175,7 @@ namespace PubisherConfig
             }
             foreach (var configuredEndpoint in configuredEndpoints)
             {
-                List<NodeModel> configuredNodesOnEndpoint = _publisher.GetConfiguredNodesOnEndpoint(configuredEndpoint, ct);
+                List<OpcNodeOnEndpointModel> configuredNodesOnEndpoint = _publisher.GetConfiguredNodesOnEndpoint(configuredEndpoint, ct);
                 PublisherConfigurationFileEntryModel configEntry = new PublisherConfigurationFileEntryModel();
                 configEntry.EndpointUrl = new Uri(configuredEndpoint);
                 List<OpcNodeOnEndpointModel> nodesOnEndpoint = new List<OpcNodeOnEndpointModel>();
@@ -183,12 +184,10 @@ namespace PubisherConfig
                 {
                     Logger.Debug($"Id '{configuredNode.Id}', " +
                         $"OpcPublishingInterval: {(configuredNode.OpcPublishingInterval == null ? "default" : configuredNode.OpcPublishingInterval.ToString())}, " +
-                        $"OpcSamplingInterval: {(configuredNode.OpcSamplingInterval == null ? "default" : configuredNode.OpcSamplingInterval.ToString())}");
-                    OpcNodeOnEndpointModel opcNodeOnEndpoint = new OpcNodeOnEndpointModel();
-                    opcNodeOnEndpoint.Id = configuredNode.Id;
-                    opcNodeOnEndpoint.OpcSamplingInterval = configuredNode.OpcSamplingInterval;
-                    opcNodeOnEndpoint.OpcPublishingInterval = configuredNode.OpcPublishingInterval;
-                    nodesOnEndpoint.Add(opcNodeOnEndpoint);
+                        $"OpcSamplingInterval: {(configuredNode.OpcSamplingInterval == null ? "default" : configuredNode.OpcSamplingInterval.ToString())}, " +
+                        $"{(string.IsNullOrEmpty(configuredNode.DisplayName) ? "" : configuredNode.DisplayName)}");
+
+                    nodesOnEndpoint.Add(configuredNode);
                 }
                 configEntry.OpcNodes = nodesOnEndpoint;
                 currentConfiguration.Add(configEntry);
@@ -216,7 +215,7 @@ namespace PubisherConfig
                 foreach (var uniqueEndpoint in uniqueEndpoints)
                 {
                     var endpointConfigurationfileEntries = _configurationFileEntries.Where(e => e.EndpointUrl == uniqueEndpoint);
-                    List<NodeIdInfo> configurationNodeIdInfos = new List<NodeIdInfo>();
+                    List<OpcNodeOnEndpointModel> nodesToPublish = new List<OpcNodeOnEndpointModel>();
                     foreach (var endpointConfigurationFileEntry in endpointConfigurationfileEntries)
                     {
                         foreach (var opcNode in endpointConfigurationFileEntry.OpcNodes)
@@ -224,11 +223,10 @@ namespace PubisherConfig
                             Logger.Debug($"Id '{opcNode.Id}', " +
                                 $"OpcPublishingInterval: {(opcNode.OpcPublishingInterval == null ? "default" : opcNode.OpcPublishingInterval.ToString())}, " +
                                 $"OpcSamplingInterval: {(opcNode.OpcSamplingInterval == null ? "default" : opcNode.OpcSamplingInterval.ToString())}");
-                            NodeIdInfo nodeIdInfo = new NodeIdInfo(opcNode.Id);
-                            configurationNodeIdInfos.Add(nodeIdInfo);
+                            nodesToPublish.Add(opcNode);
                         }
                     }
-                    if (!_publisher.PublishNodes(configurationNodeIdInfos, ct, uniqueEndpoint.AbsoluteUri))
+                    if (!_publisher.PublishNodes(nodesToPublish, ct, uniqueEndpoint.AbsoluteUri))
                     {
                         Logger.Error($"Not able to send the new node configuration to OPC Publisher.");
                     }
