@@ -12,18 +12,28 @@ namespace PubisherConfig
 {
     using Newtonsoft.Json;
     using OpcPublisher;
+    using System.Diagnostics;
     using System.Linq;
     using System.Net;
     using System.Reflection;
 
-    public class Program
+    public sealed class Program
     {
+        /// <summary>
+        /// name of the application
+        /// </summary>
+        public const string ProgramName = "PublisherNodeconfig";
+
+        /// <summary>
+        /// logging object
+        /// </summary>
         public static Serilog.Core.Logger Logger = null;
 
-        // long wait time
-        public const int MAX_LONG_WAIT_SEC = 10;
-        // short wait time
-        public const int MAX_SHORT_WAIT_SEC = 5;
+
+        /// <summary>
+        /// short wait time
+        /// </summary>
+        public const int MAXSHORTWAITSEC = 5;
 
         /// <summary>
         /// Synchronous main method of the app.
@@ -116,6 +126,10 @@ namespace PubisherConfig
                 return;
             }
 
+            //show version
+            Logger.Information($"{ProgramName} V{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion} starting up...");
+            Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute).InformationalVersion}");
+
             // sanity check parameters
             if (string.IsNullOrEmpty(iotHubConnectionString) || string.IsNullOrEmpty(iotHubPublisherDeviceName))
             {
@@ -157,7 +171,7 @@ namespace PubisherConfig
             _publisher = new Publisher(iotHubConnectionString, iotHubPublisherDeviceName, iotHubPublisherModuleName);
 
             // validate OPC Publisher version
-            if (!await ValidatePublisherVersionAsync(ct))
+            if (!await ValidatePublisherVersionAsync(ct).ConfigureAwait(false))
             {
                 Environment.Exit(1);
             }
@@ -196,7 +210,7 @@ namespace PubisherConfig
             // save it on request
             if (!string.IsNullOrEmpty(_backupFileName) && currentConfiguration.Count > 0)
             {
-                await File.WriteAllTextAsync(_backupFileName, JsonConvert.SerializeObject(currentConfiguration, Formatting.Indented));
+                await File.WriteAllTextAsync(_backupFileName, JsonConvert.SerializeObject(currentConfiguration, Formatting.Indented)).ConfigureAwait(false);
                 Logger.Information($"The existing OPC Publisher node configuration was saved in '{_backupFileName}'");
             }
 
@@ -289,7 +303,7 @@ namespace PubisherConfig
         /// <summary>
         /// Usage message.
         /// </summary>
-        private static void Usage(Mono.Options.OptionSet options, string[] args)
+        private static void Usage(Mono.Options.OptionSet options, string[] args = null)
         {
             Logger.Information("");
 
@@ -305,8 +319,10 @@ namespace PubisherConfig
             }
 
             Logger.Information("");
+            Logger.Information($"{ProgramName} V{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}");
+            Logger.Information($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute).InformationalVersion}");
             Logger.Information("");
-            Logger.Information($"Usage: iot-edge-opc-publisher-nodeconfiguration [<options>]");
+            Logger.Information("Usage: {0} [<options>]", Assembly.GetEntryAssembly().GetName().Name);
             Logger.Information("");
 
             // output the options
@@ -314,7 +330,7 @@ namespace PubisherConfig
             StringBuilder stringBuilder = new StringBuilder();
             StringWriter stringWriter = new StringWriter(stringBuilder);
             options.WriteOptionDescriptions(stringWriter);
-            string[] helpLines = stringBuilder.ToString().Split("\r\n");
+            string[] helpLines = stringBuilder.ToString().Split("\n");
             foreach (var line in helpLines)
             {
                 Logger.Information(line);
@@ -328,7 +344,7 @@ namespace PubisherConfig
         private static async Task<bool> ValidatePublisherVersionAsync(CancellationToken ct)
         {
             // fetch the information
-            GetInfoMethodResponseModel info = await _publisher.GetInfoAsync(ct);
+            GetInfoMethodResponseModel info = await _publisher.GetInfoAsync(ct).ConfigureAwait(false);
             if (info == null)
             {
                 return false;
@@ -336,33 +352,6 @@ namespace PubisherConfig
 
             Logger.Information($"OPC Publisher V{info.VersionMajor}.{info.VersionMinor}.{info.VersionPatch} was detected.");
             return true;
-        }
-
-
-        /// <summary>
-        /// Usage message.
-        /// </summary>
-        private static void Usage(Mono.Options.OptionSet options)
-        {
-
-            // show usage
-            Logger.Information("");
-            Logger.Information("Usage: {0}.exe [<options>]", Assembly.GetEntryAssembly().GetName().Name);
-            Logger.Information("");
-            Logger.Information("OPC Publisher node configuration tool.");
-            Logger.Information("To exit the application, just press CTRL-C while it is running.");
-            Logger.Information("");
-
-            // output the options
-            Logger.Information("Options:");
-            StringBuilder stringBuilder = new StringBuilder();
-            StringWriter stringWriter = new StringWriter(stringBuilder);
-            options.WriteOptionDescriptions(stringWriter);
-            string[] helpLines = stringBuilder.ToString().Split("\n");
-            foreach (var line in helpLines)
-            {
-                Logger.Information(line);
-            }
         }
 
         private static string _logFileName = $"{Dns.GetHostName()}-publishernodeconfig.log";

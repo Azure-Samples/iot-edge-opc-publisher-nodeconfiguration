@@ -6,6 +6,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{12AA1D4F-B9A8-4061-A5F9-69A584571099}"
 	ProjectSection(SolutionItems) = preProject
 		Dockerfile = Dockerfile
+		gitversion.yml = gitversion.yml
 		README.md = README.md
 	EndProjectSection
 EndProject

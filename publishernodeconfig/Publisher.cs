@@ -60,7 +60,7 @@ namespace PubisherConfig
                     }
                     if (methodResult.Status == (int)HttpStatusCode.NotAcceptable)
                     {
-                        Thread.Sleep(MAX_SHORT_WAIT_SEC * 1000);
+                        Thread.Sleep(MAXSHORTWAITSEC * 1000);
                     }
                     else
                     {
@@ -241,11 +241,11 @@ namespace PubisherConfig
                 CloudToDeviceMethodResult methodResult = new CloudToDeviceMethodResult();
                 if (string.IsNullOrEmpty(_publisherModuleName))
                 {
-                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _getInfoMethod, ct);
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _getInfoMethod, ct).ConfigureAwait(false);
                 }
                 else
                 {
-                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _getInfoMethod, ct);
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _getInfoMethod, ct).ConfigureAwait(false);
                 }
                 if (methodResult.Status == (int)HttpStatusCode.OK)
                 {
