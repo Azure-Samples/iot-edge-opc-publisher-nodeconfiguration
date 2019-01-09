@@ -8,6 +8,7 @@
     <RuntimeFrameworkVersion>2.1</RuntimeFrameworkVersion>
     <DebugType>portable</DebugType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Authors>Microsoft</Authors>
   </PropertyGroup>
 
   <ItemGroup>
