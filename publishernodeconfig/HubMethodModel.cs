@@ -36,6 +36,12 @@ namespace OpcPublisher
         public int VersionPatch { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Include)]
+        public string SemanticVersion { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
+        public string InformationalVersion { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public string OS { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Include)]
@@ -160,7 +166,7 @@ namespace OpcPublisher
     {
         public PublishNodesMethodRequestModel(string endpointUrl, bool useSecurity = true, string userName = null, string password = null)
         {
-            Nodes = new List<OpcNodeOnEndpointModel>();
+            OpcNodes = new List<OpcNodeOnEndpointModel>();
             EndpointUrl = endpointUrl;
             UseSecurity = useSecurity;
             UserName = userName;
@@ -168,7 +174,7 @@ namespace OpcPublisher
         }
 
         public string EndpointUrl { get; set; }
-        public List<OpcNodeOnEndpointModel> Nodes { get; set; }
+        public List<OpcNodeOnEndpointModel> OpcNodes { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public bool UseSecurity { get; set; }
@@ -187,13 +193,13 @@ namespace OpcPublisher
     {
         public UnpublishNodesMethodRequestModel(string endpointUrl)
         {
-            Nodes = new List<OpcNodeOnEndpointModel>();
+            OpcNodes = new List<OpcNodeOnEndpointModel>();
             EndpointUrl = endpointUrl;
         }
 
         public string EndpointUrl { get; set; }
 
-        public List<OpcNodeOnEndpointModel> Nodes { get; set; }
+        public List<OpcNodeOnEndpointModel> OpcNodes { get; set; }
     }
 
     /// <summary>
@@ -267,17 +273,17 @@ namespace OpcPublisher
     {
         public GetConfiguredNodesOnEndpointMethodResponseModel()
         {
-            Nodes = new List<OpcNodeOnEndpointModel>();
+            OpcNodes = new List<OpcNodeOnEndpointModel>();
         }
 
         /// <param name="nodes"></param>
         public GetConfiguredNodesOnEndpointMethodResponseModel(List<OpcNodeOnEndpointModel> nodes)
         {
-            Nodes = nodes;
+            OpcNodes = nodes;
         }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Include)]
-        public List<OpcNodeOnEndpointModel> Nodes { get; set; }
+        public List<OpcNodeOnEndpointModel> OpcNodes { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public ulong? ContinuationToken { get; set; }

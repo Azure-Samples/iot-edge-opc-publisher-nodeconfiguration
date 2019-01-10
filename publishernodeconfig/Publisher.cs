@@ -44,7 +44,7 @@ namespace PubisherConfig
             try
             {
                 PublishNodesMethodRequestModel publishNodesMethodRequestModel = new PublishNodesMethodRequestModel(endpointUrl);
-                publishNodesMethodRequestModel.Nodes = nodesToPublish;
+                publishNodesMethodRequestModel.OpcNodes = nodesToPublish;
                 CloudToDeviceMethodResult methodResult = new CloudToDeviceMethodResult();
                 methodResult.Status = (int)HttpStatusCode.NotAcceptable;
                 while (methodResult.Status == (int)HttpStatusCode.NotAcceptable && retryCount-- > 0)
@@ -80,7 +80,7 @@ namespace PubisherConfig
             try
             {
                 UnpublishNodesMethodRequestModel unpublishNodesMethodRequestModel = new UnpublishNodesMethodRequestModel(endpointUrl);
-                unpublishNodesMethodRequestModel.Nodes = nodesToUnpublish;
+                unpublishNodesMethodRequestModel.OpcNodes = nodesToUnpublish;
                 _unpublishNodesMethod.SetPayloadJson(JsonConvert.SerializeObject(unpublishNodesMethodRequestModel));
                 CloudToDeviceMethodResult result;
                 if (string.IsNullOrEmpty(_publisherModuleName))
@@ -186,9 +186,9 @@ namespace PubisherConfig
                         result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _getConfiguredNodesOnEndpointMethod, ct).Result;
                     }
                     response = JsonConvert.DeserializeObject<GetConfiguredNodesOnEndpointMethodResponseModel>(result.GetPayloadAsJson());
-                    if (response != null && response.Nodes != null)
+                    if (response != null && response.OpcNodes != null)
                     {
-                        nodes = response.Nodes;
+                        nodes = response.OpcNodes;
                     }
                     if (response == null || response.ContinuationToken == null)
                     {
