@@ -8,6 +8,7 @@ namespace PubisherConfig
 {
     using Microsoft.Azure.Devices;
     using OpcPublisher;
+    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
     using static Program;
@@ -36,15 +37,15 @@ namespace PubisherConfig
             _getInfoMethod = new CloudToDeviceMethod("GetInfo", responseTimeout, connectionTimeout);
         }
 
-        public bool PublishNodes(List<OpcNodeOnEndpointModel> nodesToPublish, CancellationToken ct, string endpointUrl = null)
+        public async Task<bool> PublishNodesAsync(List<OpcNodeOnEndpointModel> nodesToPublish, CancellationToken ct, string endpointUrl = null)
         {
-            bool result = true;
+            bool result = false;
             int retryCount = MAX_RETRY_COUNT;
 
             try
             {
                 PublishNodesMethodRequestModel publishNodesMethodRequestModel = new PublishNodesMethodRequestModel(endpointUrl);
-                publishNodesMethodRequestModel.OpcNodes = nodesToPublish;
+                publishNodesMethodRequestModel.OpcNodes.AddRange(nodesToPublish);
                 CloudToDeviceMethodResult methodResult = new CloudToDeviceMethodResult();
                 methodResult.Status = (int)HttpStatusCode.NotAcceptable;
                 while (methodResult.Status == (int)HttpStatusCode.NotAcceptable && retryCount-- > 0)
@@ -52,11 +53,11 @@ namespace PubisherConfig
                     _publishNodesMethod.SetPayloadJson(JsonConvert.SerializeObject(publishNodesMethodRequestModel));
                     if (string.IsNullOrEmpty(_publisherModuleName))
                     {
-                        methodResult = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publishNodesMethod, ct).Result;
+                        methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publishNodesMethod, ct).ConfigureAwait(false);
                     }
                     else
                     {
-                        methodResult = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _publishNodesMethod, ct).Result;
+                        methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _publishNodesMethod, ct).ConfigureAwait(false);
                     }
                     if (methodResult.Status == (int)HttpStatusCode.NotAcceptable)
                     {
@@ -64,65 +65,82 @@ namespace PubisherConfig
                     }
                     else
                     {
+                        if (ct.IsCancellationRequested)
+                        {
+                            break;
+                        }
+                        LogMethodResult(methodResult, _publishNodesMethod.MethodName);
+                        result = methodResult.Status == (int)HttpStatusCode.OK;
                         break;
                     }
                 }
             }
             catch (Exception e)
             {
-                Logger.Fatal(e, $"PublishNodes Exception");
+                Logger.Error(e, $"Exception");
             }
             return result;
         }
 
-        public bool UnpublishNodes(List<OpcNodeOnEndpointModel> nodesToUnpublish, CancellationToken ct, string endpointUrl)
+        public async Task<bool> UnpublishNodesAsync(List<OpcNodeOnEndpointModel> nodesToUnpublish, string endpointUrl, CancellationToken ct)
         {
+            bool result = false;
             try
             {
                 UnpublishNodesMethodRequestModel unpublishNodesMethodRequestModel = new UnpublishNodesMethodRequestModel(endpointUrl);
-                unpublishNodesMethodRequestModel.OpcNodes = nodesToUnpublish;
+                unpublishNodesMethodRequestModel.OpcNodes.AddRange(nodesToUnpublish);
                 _unpublishNodesMethod.SetPayloadJson(JsonConvert.SerializeObject(unpublishNodesMethodRequestModel));
-                CloudToDeviceMethodResult result;
+                CloudToDeviceMethodResult methodResult;
                 if (string.IsNullOrEmpty(_publisherModuleName))
                 {
-                    result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _unpublishNodesMethod, ct).Result;
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _unpublishNodesMethod, ct).ConfigureAwait(false);
                 }
                 else
                 {
-                    result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _unpublishNodesMethod, ct).Result;
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _unpublishNodesMethod, ct).ConfigureAwait(false);
+                }
+                if (!ct.IsCancellationRequested)
+                {
+                    LogMethodResult(methodResult, _publishNodesMethod.MethodName);
+                    result = methodResult.Status == (int)HttpStatusCode.OK;
                 }
             }
             catch (Exception e)
             {
-                Logger.Fatal(e, $"UnpublishNodes Exception");
+                Logger.Error(e, $"Exception");
             }
-            return false;
+            return result;
         }
 
-        public void UnpublishAllNodes(CancellationToken ct, string endpointUrl = null)
+        public async Task<bool> UnpublishAllNodesAsync(CancellationToken ct, string endpointUrl = null)
         {
-            List<string> endpoints = new List<string>();
+            bool result = false;
             try
             {
                 UnpublishAllNodesMethodRequestModel unpublishAllNodesMethodRequestModel = new UnpublishAllNodesMethodRequestModel();
-                CloudToDeviceMethodResult result;
+                CloudToDeviceMethodResult methodResult;
                 if (string.IsNullOrEmpty(_publisherModuleName))
                 {
-                    result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _unpublishAllNodesMethod, ct).Result;
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _unpublishAllNodesMethod, ct).ConfigureAwait(false);
                 }
                 else
                 {
-                    result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _unpublishAllNodesMethod, ct).Result;
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _unpublishAllNodesMethod, ct).ConfigureAwait(false);
                 }
-                Logger.Debug($"UnpublishAllNodes succeeded, status: '{result.Status}'");
+                if (!ct.IsCancellationRequested)
+                {
+                    LogMethodResult(methodResult, _publishNodesMethod.MethodName);
+                    result = methodResult.Status == (int)HttpStatusCode.OK;
+                }
             }
             catch (Exception e)
             {
-                Logger.Fatal(e, $"UnpublishAllNodes Exception ");
+                Logger.Error(e, $"Exception ");
             }
+            return result;
         }
 
-        public List<string> GetConfiguredEndpoints(CancellationToken ct)
+        public async Task<List<string>> GetConfiguredEndpointsAsync(CancellationToken ct)
         {
             GetConfiguredEndpointsMethodResponseModel response = null;
             List<string> endpoints = new List<string>();
@@ -134,39 +152,54 @@ namespace PubisherConfig
                 {
                     getConfiguredEndpointsMethodRequestModel.ContinuationToken = continuationToken;
                     _getConfiguredEndpointsMethod.SetPayloadJson(JsonConvert.SerializeObject(getConfiguredEndpointsMethodRequestModel));
-                    CloudToDeviceMethodResult result;
+                    CloudToDeviceMethodResult methodResult;
                     if (string.IsNullOrEmpty(_publisherModuleName))
                     {
-                        result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _getConfiguredEndpointsMethod, ct).Result;
+                        methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _getConfiguredEndpointsMethod, ct).ConfigureAwait(false);
                     }
                     else
                     {
-                        result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _getConfiguredEndpointsMethod, ct).Result;
+                        methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _getConfiguredEndpointsMethod, ct).ConfigureAwait(false);
                     }
-                    response = JsonConvert.DeserializeObject<GetConfiguredEndpointsMethodResponseModel>(result.GetPayloadAsJson());
-                    if (response != null && response.Endpoints != null)
+                    if (!ct.IsCancellationRequested)
                     {
-                        endpoints.AddRange(response.Endpoints);
+                        if (methodResult.Status == (int)HttpStatusCode.OK)
+                        {
+                            response = JsonConvert.DeserializeObject<GetConfiguredEndpointsMethodResponseModel>(methodResult.GetPayloadAsJson());
+                            if (response != null && response.Endpoints != null)
+                            {
+                                endpoints.AddRange(response.Endpoints.Select(e => e.EndpointUrl));
+                            }
+                            if (response == null || response.ContinuationToken == null)
+                            {
+                                break;
+                            }
+                            continuationToken = response.ContinuationToken;
+                        }
+                        else
+                        {
+                            LogMethodResult(methodResult, _publishNodesMethod.MethodName);
+                            break; ;
+                        }
                     }
-                    if (response == null || response.ContinuationToken == null)
+                    else
                     {
                         break;
                     }
-                    continuationToken = response.ContinuationToken;
                 }
             }
             catch (Exception e)
             {
-               Logger.Fatal(e, $"GetConfiguredEndpoints Exception ");
+               Logger.Error(e, $"Exception ");
             }
-            Logger.Debug($"GetConfiguredEndpoints succeeded, got {endpoints.Count} endpoints");
             return endpoints;
         }
 
-        public List<OpcNodeOnEndpointModel> GetConfiguredNodesOnEndpoint(string endpointUrl, CancellationToken ct)
+        public async Task<List<OpcNodeOnEndpointModel>> GetConfiguredNodesOnEndpointAsync(string endpointUrl, CancellationToken ct)
         {
             GetConfiguredNodesOnEndpointMethodResponseModel response = null;
             List<OpcNodeOnEndpointModel> nodes = new List<OpcNodeOnEndpointModel>();
+
             try
             {
                 GetConfiguredNodesOnEndpointMethodRequestModel getConfiguredNodesOnEndpointMethodRequestModel = new GetConfiguredNodesOnEndpointMethodRequestModel(endpointUrl);
@@ -176,57 +209,77 @@ namespace PubisherConfig
                 {
                     getConfiguredNodesOnEndpointMethodRequestModel.ContinuationToken = continuationToken;
                     _getConfiguredNodesOnEndpointMethod.SetPayloadJson(JsonConvert.SerializeObject(getConfiguredNodesOnEndpointMethodRequestModel));
-                    CloudToDeviceMethodResult result;
+                    CloudToDeviceMethodResult methodResult;
                     if (string.IsNullOrEmpty(_publisherModuleName))
                     {
-                        result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _getConfiguredNodesOnEndpointMethod, ct).Result;
+                        methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _getConfiguredNodesOnEndpointMethod, ct).ConfigureAwait(false);
                     }
                     else
                     {
-                        result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _getConfiguredNodesOnEndpointMethod, ct).Result;
+                        methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _getConfiguredNodesOnEndpointMethod, ct).ConfigureAwait(false);
                     }
-                    response = JsonConvert.DeserializeObject<GetConfiguredNodesOnEndpointMethodResponseModel>(result.GetPayloadAsJson());
-                    if (response != null && response.OpcNodes != null)
+                    if (!ct.IsCancellationRequested)
                     {
-                        nodes = response.OpcNodes;
+                        if (methodResult.Status == (int)HttpStatusCode.OK)
+                        {
+                            response = JsonConvert.DeserializeObject<GetConfiguredNodesOnEndpointMethodResponseModel>(methodResult.GetPayloadAsJson());
+                            if (response != null && response.OpcNodes != null)
+                            {
+                                nodes = response.OpcNodes;
+                            }
+                            if (response == null || response.ContinuationToken == null)
+                            {
+                                break;
+                            }
+                            continuationToken = response.ContinuationToken;
+                        }
+                        else
+                        {
+                            LogMethodResult(methodResult, _getConfiguredNodesOnEndpointMethod.MethodName);
+                            break; ;
+                        }
                     }
-                    if (response == null || response.ContinuationToken == null)
+                    else
                     {
                         break;
                     }
-                    continuationToken = response.ContinuationToken;
                 }
             }
             catch (Exception e)
             {
-                Logger.Fatal(e, $"GetConfiguredNodesOnEndpoint Exception");
+                Logger.Error(e, $"Exception");
             }
-            Logger.Debug($"GetConfiguredNodesOnEndpoint succeeded, got {nodes.Count} nodes are published on endpoint '{endpointUrl}')");
             return nodes;
         }
 
-        public bool UnpublishAllConfiguredNodes(CancellationToken ct)
+        public async Task<bool> UnpublishAllConfiguredNodesAsync(CancellationToken ct)
         {
-            CloudToDeviceMethodResult result = null;
+            CloudToDeviceMethodResult methodResult = null;
+            bool result = false;
             try
             {
                 UnpublishAllNodesMethodRequestModel unpublishAllNodesMethodRequestModel = new UnpublishAllNodesMethodRequestModel();
                 _unpublishAllNodesMethod.SetPayloadJson(JsonConvert.SerializeObject(unpublishAllNodesMethodRequestModel));
                 if (string.IsNullOrEmpty(_publisherModuleName))
                 {
-                    result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _unpublishAllNodesMethod, ct).Result;
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _unpublishAllNodesMethod, ct).ConfigureAwait(false);
                 }
                 else
                 {
-                    result = _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _unpublishAllNodesMethod, ct).Result;
+                    methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _unpublishAllNodesMethod, ct).ConfigureAwait(false);
+                }
+                List<string> statusResponse = new List<string>();
+                if (!ct.IsCancellationRequested)
+                {
+                    LogMethodResult(methodResult, _publishNodesMethod.MethodName);
+                    result = methodResult.Status == (int)HttpStatusCode.OK;
                 }
             }
             catch (Exception e)
             {
-                Logger.Fatal(e, $"UnpublishAllConfiguredNodes Exception");
+                Logger.Error(e, $"Exception");
             }
-            Logger.Debug($"UnpublishAllConfiguredNodes succeeded, result: {(HttpStatusCode)result.Status}");
-            return (HttpStatusCode)result.Status == HttpStatusCode.OK ? true : false;
+            return result;
         }
 
         /// <summary>
@@ -247,20 +300,24 @@ namespace PubisherConfig
                 {
                     methodResult = await _iotHubClient.InvokeDeviceMethodAsync(_publisherDeviceName, _publisherModuleName, _getInfoMethod, ct).ConfigureAwait(false);
                 }
-                if (methodResult.Status == (int)HttpStatusCode.OK)
+
+                if (!ct.IsCancellationRequested)
                 {
-                    response = JsonConvert.DeserializeObject<GetInfoMethodResponseModel>(methodResult.GetPayloadAsJson());
-                }
-                else
-                {
-                    Logger.Error($"GetInfo failed with status {methodResult.Status}");
+                    if (methodResult.Status == (int)HttpStatusCode.OK)
+                    {
+                        response = JsonConvert.DeserializeObject<GetInfoMethodResponseModel>(methodResult.GetPayloadAsJson());
+                    }
+                    else
+                    {
+                        LogMethodResult(methodResult, _getConfiguredNodesOnEndpointMethod.MethodName);
+                    }
                 }
             }
             catch (Exception e)
             {
                 if (!ct.IsCancellationRequested)
                 {
-                    Logger.Debug(e, $"GetInfo exception");
+                    Logger.Debug(e, $"Exception");
                 }
             }
 
@@ -272,6 +329,29 @@ namespace PubisherConfig
             }
 
             return response;
+        }
+
+        private void LogMethodResult(CloudToDeviceMethodResult methodResult, string methodName)
+        {
+            List<string> statusResponse = JsonConvert.DeserializeObject<List<string>>(methodResult.GetPayloadAsJson());
+            if (methodResult.Status == (int)HttpStatusCode.OK)
+            {
+                Logger.Debug($"{methodName} succeeded, status: {((HttpStatusCode)methodResult.Status).ToString()}");
+                Logger.Verbose($"Messages returned:");
+                foreach (var statusMessage in statusResponse)
+                {
+                    Logger.Verbose($"{statusMessage}");
+                }
+            }
+            else
+            {
+                Logger.Error($"{methodName} failed, status: {((HttpStatusCode)methodResult.Status).ToString()}");
+                Logger.Error($"Messages returned:");
+                foreach (var statusMessage in statusResponse)
+                {
+                    Logger.Error($"{statusMessage}");
+                }
+            }
         }
 
         const int MAX_RETRY_COUNT = 3;

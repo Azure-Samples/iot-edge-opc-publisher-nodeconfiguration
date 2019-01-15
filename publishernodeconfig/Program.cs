@@ -27,7 +27,7 @@ namespace PubisherConfig
         /// <summary>
         /// logging object
         /// </summary>
-        public static Serilog.Core.Logger Logger = null;
+        public static Serilog.Core.Logger Logger { get; set; } = null;
 
 
         /// <summary>
@@ -75,10 +75,12 @@ namespace PubisherConfig
                 { "lf|logfile=", $"the filename of the logfile to use\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
                 { "ll|loglevel=", $"the loglevel to use (allowed: fatal, error, warn, info, debug, verbose).\nDefault: info", (string l) => {
                         List<string> logLevels = new List<string> {"fatal", "error", "warn", "info", "debug", "verbose"};
+#pragma warning disable CA1308 // Normalize strings to uppercase
                         if (logLevels.Contains(l.ToLowerInvariant()))
                         {
                             _logLevel = l.ToLowerInvariant();
                         }
+#pragma warning restore CA1308 // Normalize strings to uppercase
                         else
                         {
                             throw new OptionException("The loglevel must be one of: fatal, error, warn, info, debug, verbose", "loglevel");
@@ -178,10 +180,10 @@ namespace PubisherConfig
 
             // read existing configuration
             List<PublisherConfigurationFileEntryModel> currentConfiguration = new List<PublisherConfigurationFileEntryModel>();
-            List<string> configuredEndpoints = _publisher.GetConfiguredEndpoints(ct);
+            List<string> configuredEndpoints = await _publisher.GetConfiguredEndpointsAsync(ct).ConfigureAwait(false);
             if (configuredEndpoints.Count > 0)
             {
-                Logger.Information($"OPC Publisher has the following node configuration:");
+                Logger.Information($"OPC Publisher has {configuredEndpoints.Count} endpoints configured.");
             }
             else
             {
@@ -189,11 +191,11 @@ namespace PubisherConfig
             }
             foreach (var configuredEndpoint in configuredEndpoints)
             {
-                List<OpcNodeOnEndpointModel> configuredNodesOnEndpoint = _publisher.GetConfiguredNodesOnEndpoint(configuredEndpoint, ct);
+                List<OpcNodeOnEndpointModel> configuredNodesOnEndpoint = await _publisher.GetConfiguredNodesOnEndpointAsync(configuredEndpoint, ct).ConfigureAwait(false);
                 PublisherConfigurationFileEntryModel configEntry = new PublisherConfigurationFileEntryModel();
                 configEntry.EndpointUrl = new Uri(configuredEndpoint);
                 List<OpcNodeOnEndpointModel> nodesOnEndpoint = new List<OpcNodeOnEndpointModel>();
-                Logger.Information($"For endpoint '{configuredEndpoint}' there are {configuredNodesOnEndpoint.Count} nodes configured.");
+                Logger.Information($"For endpoint '{configuredEndpoint}' there is/are {configuredNodesOnEndpoint.Count} node(s) configured.");
                 foreach (var configuredNode in configuredNodesOnEndpoint)
                 {
                     Logger.Debug($"Id '{configuredNode.Id}', " +
@@ -217,17 +219,23 @@ namespace PubisherConfig
             // remove existing configuration on request
             if (_purgeConfig)
             {
-                _publisher.UnpublishAllConfiguredNodes(ct);
-                Logger.Information($"The existing node configuration was purged. OPC Publisher should no longer publish any data.");
+                if (await _publisher.UnpublishAllConfiguredNodesAsync(ct).ConfigureAwait(false))
+                {
+                    Logger.Information($"The existing node configuration was purged. OPC Publisher should no longer publish any data.");
+                }
+                else
+                {
+                    Logger.Error($"Error while trying to purge the existing node configuration.");
+                }
             }
 
             // push new configuration, if required
             if (_configurationFileEntries != null)
             {
                 var uniqueEndpoints = _configurationFileEntries.Select(e => e.EndpointUrl).Distinct();
-                Logger.Information($"The new node configuration will now be set in OPC Publisher.");
                 foreach (var uniqueEndpoint in uniqueEndpoints)
                 {
+                    Logger.Information($"The new node configuration for endpoint {uniqueEndpoint.AbsoluteUri} will now be set in OPC Publisher.");
                     var endpointConfigurationfileEntries = _configurationFileEntries.Where(e => e.EndpointUrl == uniqueEndpoint);
                     List<OpcNodeOnEndpointModel> nodesToPublish = new List<OpcNodeOnEndpointModel>();
                     foreach (var endpointConfigurationFileEntry in endpointConfigurationfileEntries)
@@ -240,7 +248,7 @@ namespace PubisherConfig
                             nodesToPublish.Add(opcNode);
                         }
                     }
-                    if (!_publisher.PublishNodes(nodesToPublish, ct, uniqueEndpoint.AbsoluteUri))
+                    if (!await _publisher.PublishNodesAsync(nodesToPublish, ct, uniqueEndpoint.AbsoluteUri).ConfigureAwait(false))
                     {
                         Logger.Error($"Not able to send the new node configuration to OPC Publisher.");
                     }
@@ -351,6 +359,8 @@ namespace PubisherConfig
             }
 
             Logger.Information($"OPC Publisher V{info.VersionMajor}.{info.VersionMinor}.{info.VersionPatch} was detected.");
+            Logger.Debug($"semantic version: {info.SemanticVersion}");
+            Logger.Debug($"informational version: {info.InformationalVersion}");
             return true;
         }
 
