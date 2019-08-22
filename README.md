@@ -1,6 +1,6 @@
 ---
 page_type: sample
-description: "IoT OPC Publisher node configuration."
+description: "Industrial IoT OPC Publisher node configuration."
 languages:
 - csharp
 products:
