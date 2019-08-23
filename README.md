@@ -39,7 +39,8 @@ You need to compile the solution with Visual Studio and then run it.
 
 The application supports several command line options to control its functionality. 
 
-Here the usage output:
+Here is the usage output:
+
         OPC Publisher node configuration
         Current directory is: <current directory>
         Log file is: <hstname>-publishernodeconfig.log
