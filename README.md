@@ -41,35 +41,36 @@ The application supports several command line options to control its functionali
 
 Here is the usage output:
 
-        OPC Publisher node configuration
-        Current directory is: <current directory>
-        Log file is: <hstname>-publishernodeconfig.log
-        Log level is: info
-        
-        Usage: dotnet publishernodeconfig.dll [<options>]
-        
-        OPC Publisher configuration tool.
-        
-        Options:
-          -h, --help                 show this message and exit
-              --ic, --iotHubConnectionString=VALUE
-                                     IoTHub owner or service connectionstring
-              --id, --iothubdevicename=VALUE
-                                     IoTHub device name of the OPC Publisher
-              --im, --iothubmodulename=VALUE
-                                     IoT Edge module name of the OPC Publisher which
-                                       runs in the IoT Edge device specified by id/
-                                       iothubdevicename
-              --pc, --purgeconfig    remove all configured nodes before pushing new ones
-              --bf, --backupfile=VALUE
-                                     the filename to store the existing configuration
-                                       of OPC Publisher
-                                       Default: './<hostname>-publishernodeconfig.bak'
-              --nc, --nodeconfigfile=VALUE
-                                     the filename of the node configuration to be set
-              --lf, --logfile=VALUE  the filename of the logfile to use
-                                       Default: './johanngnb-publishernodeconfig.log'
-              --ll, --loglevel=VALUE the loglevel to use (allowed: fatal, error, warn,
-                                       info, debug, verbose).
-                                       Default: info
+```bash
+OPC Publisher node configuration
+Current directory is: <current directory>
+Log file is: <hstname>-publishernodeconfig.log
+Log level is: info
 
+Usage: dotnet publishernodeconfig.dll [<options>]
+
+OPC Publisher configuration tool.
+
+Options:
+  -h, --help                 show this message and exit
+      --ic, --iotHubConnectionString=VALUE
+                             IoTHub owner or service connectionstring
+      --id, --iothubdevicename=VALUE
+                             IoTHub device name of the OPC Publisher
+      --im, --iothubmodulename=VALUE
+                             IoT Edge module name of the OPC Publisher which
+                               runs in the IoT Edge device specified by id/
+                               iothubdevicename
+      --pc, --purgeconfig    remove all configured nodes before pushing new ones
+      --bf, --backupfile=VALUE
+                             the filename to store the existing configuration
+                               of OPC Publisher
+                               Default: './<hostname>-publishernodeconfig.bak'
+      --nc, --nodeconfigfile=VALUE
+                             the filename of the node configuration to be set
+      --lf, --logfile=VALUE  the filename of the logfile to use
+                               Default: './johanngnb-publishernodeconfig.log'
+      --ll, --loglevel=VALUE the loglevel to use (allowed: fatal, error, warn,
+                               info, debug, verbose).
+                               Default: info
+```
