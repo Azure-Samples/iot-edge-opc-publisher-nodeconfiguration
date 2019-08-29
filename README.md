@@ -9,7 +9,7 @@ products:
 urlFragment: azure-iot-opc-publisher-node-configuration
 ---
 
-# OPC Publisher node configuration - IoT Edge
+# OPC Publisher node configuration
 
 This .NET Core application allows to configure [OPC Publisher](https://github.com/Azure/iot-edge-opc-publisher) using IoTHub direct method calls.
 
